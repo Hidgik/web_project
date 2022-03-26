@@ -26,41 +26,52 @@ def init_db():
         email.save()
 
 
-def abort_if_not_found(name, text):
+def abort_if_not_found(name):
     if not Expressions.select().where(Expressions.name == name):
-        print(text)
         return False
     return True
 
 
+def is_author(name, id, b):
+    if not Expressions.select().where(Expressions.name == name):
+        return b
+    regular = Expressions.get(Expressions.name == name)
+    if regular.author_id == id:
+        return True
+    return False
+
+
 class RegularResource:
     def get_one_regular(self, name):
-        if abort_if_not_found(name, 'Введённое имя отсутствует в бд'):
+        if abort_if_not_found(name):
             regular = Expressions.get(Expressions.name == name)
             return regular.expression
 
     def add_regular(self, name, expression, author_id):
-        if not Expressions.select().where(Expressions.name == name) or regular.author_id == author_id:
-            regular = Expressions(name=name, expression=expression, author_id=author_id)
-            regular.save()
-        else:
-            print('Вы не можете изменить чужое выражение (имя уже занято)')
-    
-    def del_regular(self, name, author_id):
-        if abort_if_not_found(name, 'Введённое имя отсутствует в бд'):
+        if abort_if_not_found(name):
             regular = Expressions.get(Expressions.name == name)
             if regular.author_id == author_id:
+                regular = Expressions.get(Expressions.name == name)
                 regular.delete_instance()
+                regular = Expressions(name=name, expression=expression, author_id=author_id)
+                regular.save()
+                return True
             else:
-                print('Вы не можете удалить чужое выражение')
+                return False
+        else:
+            regular = Expressions(name=name, expression=expression, author_id=author_id)
+            regular.save()
+            return True
+    
+    def del_regular(self, name):
+        regular = Expressions.get(Expressions.name == name)
+        regular.delete_instance()
 
 class RegularsResource:
     def get_all_regulars(self):
+        a = []
         for regular in Expressions:
-            print(f'{regular.name}: {regular.expression}')
+            a.append(f'{regular.name}: {regular.expression}')
+        return a
 
 init_db()
-# regular = RegularResource()
-# regulars = RegularsResource()
-# print(regulars.get_all_regulars())
-# print(regular.get_one_regular('Телефоны'))
