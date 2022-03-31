@@ -1,3 +1,4 @@
+from enum import unique
 from peewee import CharField, Model, IntegerField, SqliteDatabase
 
 
@@ -9,7 +10,39 @@ class Expressions(Model):
     author_id = IntegerField()
 
     class Meta:
+        indexes = (
+            (('name', 'author_id'), True),
+        )
         database = db
+    
+    def del_regular(self, name, author_id):
+        regular = Expressions.get((Expressions.name == name) & (Expressions.author_id == author_id))
+        regular.delete_instance()
+    
+    def get_one_regular(self, name, author_id, startid=True):
+        authors_id = [author_id]
+        if startid:
+            authors_id.append(-7)
+        if not Expressions.select().where((Expressions.name == name) & (Expressions.author_id << authors_id)):
+            return False
+        return True
+
+    def add_regular(self, name, expression, author_id):
+        if abort_if_not_found(name):
+            regular = Expressions.select().where((Expressions.name == name) & (Expressions.author_id == author_id))
+            if regular:
+                regular = Expressions.get((Expressions.name == name) & (Expressions.author_id == author_id))
+                regular.expression = expression
+                regular.save()
+                return None
+        regular = Expressions(name=name, expression=expression, author_id=author_id)
+        regular.save()
+    
+    def get_all_regulars(self, author_id):
+        a = []
+        for regular in Expressions.select().where((Expressions.author_id == author_id) | (Expressions.author_id==-7)):
+            a.append(f'{regular.name}: {regular.expression}')
+        return a
 
 
 def init_db():
@@ -42,35 +75,33 @@ def is_author(name, id, b):
 
 
 class RegularResource:
-    def get_one_regular(self, name):
-        if abort_if_not_found(name):
-            regular = Expressions.get(Expressions.name == name)
-            return regular.expression
+    def get_one_regular(self, name, author_id, startid=True):
+        authors_id = [author_id]
+        if startid:
+            authors_id.append(-7)
+        if not Expressions.select().where((Expressions.name == name) & (Expressions.author_id << authors_id)):
+            return False
+        return True
 
     def add_regular(self, name, expression, author_id):
         if abort_if_not_found(name):
-            regular = Expressions.get(Expressions.name == name)
-            if regular.author_id == author_id:
-                regular = Expressions.get(Expressions.name == name)
-                regular.delete_instance()
-                regular = Expressions(name=name, expression=expression, author_id=author_id)
+            regular = Expressions.select().where((Expressions.name == name) & (Expressions.author_id == author_id))
+            if regular:
+                regular = Expressions.get((Expressions.name == name) & (Expressions.author_id == author_id))
+                regular.expression = expression
                 regular.save()
-                return True
-            else:
-                return False
-        else:
-            regular = Expressions(name=name, expression=expression, author_id=author_id)
-            regular.save()
-            return True
+                return None
+        regular = Expressions(name=name, expression=expression, author_id=author_id)
+        regular.save()
     
-    def del_regular(self, name):
-        regular = Expressions.get(Expressions.name == name)
+    def del_regular(self, name, author_id):
+        regular = Expressions.get((Expressions.name == name) & (Expressions.author_id == author_id))
         regular.delete_instance()
 
 class RegularsResource:
-    def get_all_regulars(self):
+    def get_all_regulars(self, author_id):
         a = []
-        for regular in Expressions:
+        for regular in Expressions.select().where((Expressions.author_id == author_id) | (Expressions.author_id==-7)):
             a.append(f'{regular.name}: {regular.expression}')
         return a
 
