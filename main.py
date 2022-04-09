@@ -1,3 +1,4 @@
+import requests
 import telebot
 from data.regulars import Expressions
 from threading import Thread
@@ -11,34 +12,47 @@ class Stage:
         self.commonCS = {}
         self.notfirst = False
         self.oldname = ''
-    
+
     def ValidateName_for_delete(self, message):
         regular = Expressions()
-        if regular.get_one_regular(self.variables['Name'], message.from_user.id, startid=False):
+        if regular.get_one_regular(
+                self.variables['Name'],
+                message.from_user.id, startid=False):
             return None
         self.CS = [1]
-        self.bot.send_message(message.chat.id, "Данного имени нет в бд", reply_markup=telebot.types.ReplyKeyboardRemove())
+        self.bot.send_message(
+            message.chat.id, "Данного имени нет в бд",
+            reply_markup=telebot.types.ReplyKeyboardRemove())
         return None
-    
+
     def ValidateName_for_begin(self, message):
         regular = Expressions()
-        if regular.get_one_regular(self.variables['Name'], message.from_user.id):
+        if regular.get_one_regular(
+                self.variables['Name'],
+                message.from_user.id):
             return None
         self.CS = self.commonCS['askName'] + self.CS
-        return "Данного имени нет в бд, Введите другое"
-    
+        keyboard=telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+        buttons=["IP адрес", "email", "Телефоны"]
+        keyboard.add(*buttons)
+        return ["Данного имени нет в бд, Введите другое", keyboard]
+
     def ValidateName_for_add(self, message):
         regular = Expressions()
         if self.oldname:
             if self.variables['Name'] == 'Отмена':
                 self.CS = [1]
-                self.bot.send_message(message.chat.id, 'Отменено', reply_markup=telebot.types.ReplyKeyboardRemove())
+                self.bot.send_message(
+                    message.chat.id, 'Отменено',
+                    reply_markup=telebot.types.ReplyKeyboardRemove())
                 return None
             if self.variables['Name'] == 'Заменить':
                 self.variables['Name'] = self.oldname
                 self.oldname = ''
                 return None
-        if regular.get_one_regular(self.variables['Name'], message.from_user.id):
+        if regular.get_one_regular(
+                self.variables['Name'],
+                message.from_user.id):
             self.CS = self.commonCS['askName'] + self.CS
             self.notfirst = True
             keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -50,87 +64,143 @@ class Stage:
         return None
 
     def execute_begin(self, message):
-        regular = Expressions.get((Expressions.name == self.variables['Name']) & (Expressions.author_id << [message.from_user.id, -7]))
+        regular = Expressions.get(
+            (Expressions.name == self.variables['Name']) &
+            (Expressions.author_id << [message.from_user.id, -7]))
         self.flow = Flow(self.bot)
-        th = Thread(target=self.flow.start, args=(message.chat.id, self.variables['Query'], regular.expression))
+        th = Thread(target=self.flow.start, args=(message.chat.id,
+                    self.variables['Query'], regular.expression))
         th.start()
+        self.expr = regular.expression
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
         buttons = ["Пауза", "Стоп"]
         keyboard.add(*buttons)
         return ["Для отмены или паузы нажмите на кнопку", keyboard]
     
+    def wait_pause(self, message):
+        if message.text.strip() == 'Завершить':
+            self.CS = [1]
+            self.bot.send_message(message.chat.id, "Завершено", reply_markup=telebot.types.ReplyKeyboardRemove())
+            return None
+        if message.text.strip() == 'Продолжить':
+            th = Thread(target=self.flow.start, args=(message.chat.id,
+                    self.variables['Query'], self.expr))
+            th.start()
+            self.CS = [1, lambda v: self.wait_stop(v)]
+            return "Продолжаем..."
+
     def wait_stop(self, message):
         if message.text.strip() == 'Стоп':
             self.flow.stop()
             self.CS = [1]
-            return None 
+            self.bot.send_message(message.chat.id, "Завершено", reply_markup=telebot.types.ReplyKeyboardRemove())
+            return None
+        if message.text.strip() == 'Пауза':
+            self.flow.stop()
+            keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+            buttons = ["Продолжить", "Завершить"]
+            keyboard.add(*buttons)
+            self.CS = [1, lambda v: self.wait_pause(v)]
+            return ["Приостановлено", keyboard]
         # self.CS = [1, lambda v: self.wait_stop(v)]
         self.bot.register_next_step_handler(message, self.wait_stop)
 
-
     def execute_add(self, message):
-        self.bot.send_message(message.chat.id, f"Ваше имя: {self.variables['Name']}\nВаше выражение: {self.variables['Regular']}", reply_markup=telebot.types.ReplyKeyboardRemove())
-        regular = Expressions()
+        self.bot.send_message(
+            message.chat.id,
+            f"Ваше имя: {self.variables['Name']}\nВаше выражение: {self.variables['Regular']}",
+            reply_markup=telebot.types.ReplyKeyboardRemove())
+        regular=Expressions()
         try:
-            regular.add_regular(self.variables['Name'], self.variables['Regular'], message.from_user.id)
+            regular.add_regular(
+                self.variables['Name'],
+                self.variables['Regular'],
+                message.from_user.id)
         except Exception:
-            self.bot.send_message(message.chat.id, f"Ой, ошибка...", reply_markup=telebot.types.ReplyKeyboardRemove())
+            self.bot.send_message(
+                message.chat.id, f"Ой, ошибка...",
+                reply_markup=telebot.types.ReplyKeyboardRemove())
 
     def execute_delete(self, message):
-        regular = Expressions()
+        regular=Expressions()
         try:
             regular.del_regular(self.variables['Name'], message.from_user.id)
-            self.bot.send_message(message.chat.id, f"Готово", reply_markup=telebot.types.ReplyKeyboardRemove())
+            self.bot.send_message(
+                message.chat.id, f"Готово",
+                reply_markup=telebot.types.ReplyKeyboardRemove())
         except Exception:
-            self.bot.send_message(message.chat.id, f"Ой, ошибка...", reply_markup=telebot.types.ReplyKeyboardRemove())
+            self.bot.send_message(
+                message.chat.id, f"Ой, ошибка...",
+                reply_markup=telebot.types.ReplyKeyboardRemove())
 
     def list_of_ev(self, message):
-        regular = Expressions()
-        regulars = regular.get_all_regulars(message.from_user.id)
-        self.bot.send_message(message.chat.id, '\n\n'.join(regulars), reply_markup=telebot.types.ReplyKeyboardRemove())
+        regular=Expressions()
+        regulars=regular.get_all_regulars(message.from_user.id)
+        self.bot.send_message(
+            message.chat.id, '\n\n'.join(regulars),
+            reply_markup=telebot.types.ReplyKeyboardRemove())
         return None
+    
+    def updateQuery(self, message):
+        if message.text:
+            self.variables.update({'Query': message.text.strip()})
+        else:
+            photo_id = message.photo[-1].file_id
+            file_info = bot.get_file(photo_id)
+            text = f'http://api.telegram.org/file/bot5260510912:AAHbZZ2dsYVFUapmsN2VLMY-KP62A8NSjuA/{file_info.file_path}'
+            self.variables.update({'Query': text})
 
     def processChat(self, message):
-        res = self.CS[0](message)
+        res=self.CS[0](message)
         del self.CS[0]
         if res:
             if type(res) == list:
-                self.bot.send_message(message.chat.id, res[0], reply_markup=res[1])
+                self.bot.send_message(
+                    message.chat.id, res[0],
+                    reply_markup=res[1])
                 self.bot.register_next_step_handler(message, self.processChat)
             else:
-                self.bot.send_message(message.chat.id, res, reply_markup=telebot.types.ReplyKeyboardRemove())
+                self.bot.send_message(
+                    message.chat.id, res,
+                    reply_markup=telebot.types.ReplyKeyboardRemove())
                 self.bot.register_next_step_handler(message, self.processChat)
         elif self.CS:
             self.processChat(message)
 
 
-bot = telebot.TeleBot('5260510912:AAHbZZ2dsYVFUapmsN2VLMY-KP62A8NSjuA')
+bot=telebot.TeleBot('5260510912:AAHbZZ2dsYVFUapmsN2VLMY-KP62A8NSjuA')
+
+
 @bot.message_handler(commands=["start"])
 def start(message, res=False):
-    bot.send_message(message.chat.id, 'Команды\n\n/begin\n/list\n/add\n/delete', reply_markup=telebot.types.ReplyKeyboardRemove())
+    bot.send_message(
+        message.chat.id, 'Команды\n\n/begin\n/list\n/add\n/delete',
+        reply_markup=telebot.types.ReplyKeyboardRemove())
 
 
 @bot.message_handler(content_types=["text"])
 def handle_text(message):
-    stage = Stage(bot)
-    keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
-    buttons = ["IP адрес", "email", "Телефоны"]
+    stage=Stage(bot)
+    keyboard=telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+    buttons=["IP адрес", "email", "Телефоны"]
     keyboard.add(*buttons)
-    stage.commonCS['askName'] = [lambda v: ["Введите имя", keyboard], lambda v: stage.variables.update({'Name':v.text.strip()})]
-    CS = {
+    stage.commonCS['askName']=[
+        lambda v: ["Введите имя", keyboard],
+        lambda v: stage.variables.update({'Name': v.text.strip()})]
+    CS={
         '/begin': stage.commonCS['askName'] + [lambda v: stage.ValidateName_for_begin(v),
-            lambda v: "Введите запрос", lambda v: stage.variables.update({'Query':v.text.strip()}), lambda v: stage.execute_begin(v), lambda v: stage.wait_stop(v)],
+                                               lambda v: "Введите запрос", lambda v: stage.updateQuery(v), lambda v: stage.execute_begin(v), lambda v: stage.wait_stop(v)],
         '/add': stage.commonCS['askName'] + [lambda v: stage.ValidateName_for_add(v),
-            lambda v: "Введите регулярное выражение", lambda v: stage.variables.update({'Regular':v.text.strip()}), lambda v: stage.execute_add(v)],
-        '/stop':[],
+                                             lambda v: "Введите регулярное выражение", lambda v: stage.variables.update({'Regular': v.text.strip()}), lambda v: stage.execute_add(v)],
+        '/stop': [],
         '/list': [lambda v: stage.list_of_ev(v)],
         '/delete': stage.commonCS['askName'] + [lambda v: stage.ValidateName_for_delete(v),
-            lambda v: stage.execute_delete(v)]
+                                                lambda v: stage.execute_delete(v)]
     }
     try:
         stage.CS=CS[message.text.strip()]
         if stage.CS:
-            stage.processChat(message) 
+            stage.processChat(message)
     except Exception:
         pass
 
