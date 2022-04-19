@@ -1,0 +1,7 @@
+beautifulsoup4==4.11.1
+black==20.8b1
+fake_useragent==0.1.11
+google==3.0.0
+peewee==3.14.8
+pyTelegramBotAPI==4.4.1
+requests==2.27.1
