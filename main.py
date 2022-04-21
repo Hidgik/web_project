@@ -1,6 +1,5 @@
 from tkinter.tix import Tree
 import traceback
-from black import cancel
 from bs4 import BeautifulSoup
 import requests
 import telebot
@@ -94,11 +93,10 @@ class Stage:
         regular = Expressions.get(
             (Expressions.name == self.variables['Name']) &
             (Expressions.author_id << [message.from_user.id, -7]))
-        self.flow = Flow(self.bot)
+        self.flow = Flow(self.bot, self.variables['Query'], message.chat.id, 'Yandex', regular.expression)
         self.th = Thread(
             target=self.flow.start,
-            args=(message.chat.id, self.variables['Query'],
-                  regular.expression, self.variables['Num']))
+            args=(self.variables['Num'], ))
         self.th.start()
         self.expr = regular.expression
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -111,14 +109,14 @@ class Stage:
             self.CS = [1]
             handle_text(message)
         if message.text.strip() == 'Завершить':
-            self.flow.stop(message.chat.id)
+            self.flow.stop()
             self.CS = [1]
             self.bot.send_message(
                 message.chat.id, "Завершено",
                 reply_markup=telebot.types.ReplyKeyboardRemove())
             return None
         if message.text.strip() == "Получить csv досрочно":
-            self.flow.create_csv(message.chat.id)
+            self.flow.create_csv()
         self.bot.register_next_step_handler(message, self.wait_stop)
 
     def execute_add(self, message):
@@ -163,9 +161,8 @@ class Stage:
             regular = Expressions.get(
                 (Expressions.name == self.variables['Name']) &
                 (Expressions.author_id << [message.from_user.id, -7]))
-            self.flow = Flow(self.bot)
-            self.th = Thread(target=self.flow.find, args=(
-                self.variables['Query'], regular.expression, True, message.chat.id))
+            self.flow = Flow(self.bot, self.variables['Query'], message.chat.id, 'Google', regular.expression)
+            self.th = Thread(target=self.flow.find, args=(self.variables['Query'], True))
             self.th.start()
 
     def updateQuery(self, message):
