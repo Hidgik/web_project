@@ -50,10 +50,12 @@ class GoogleSearch:
 
 
 class Flow:
-    def __init__(self, bot, query, chat_id, search_sys, regular):
+    def __init__(self, bot, query, chat_id, search_sys, regular, delim, type_format):
         self.bot = bot
+        self.delim = delim
         self.query = query
         self.chat_id = chat_id
+        self.type_format = type_format
         self.search_sys = search_sys
         self.regular = regular
         self.flag = True
@@ -84,7 +86,7 @@ class Flow:
                 if not self.flag:
                     break
                 if self.count2 == num:
-                    self.create_csv()
+                    self.create_file()
                     self.bot.send_message(
                         self.chat_id, "Завершено",
                         reply_markup=telebot.types.ReplyKeyboardRemove())
@@ -120,21 +122,30 @@ class Flow:
             pass
 
     def stop(self):
-        self.create_csv()
+        self.create_file()
         self.flag = False
 
-    def create_csv(self):
+    def create_file(self):
         if self.al:
             name = ''.join(choice(ascii_letters) for _ in range(12))
             while os.path.exists(name):
                 name = ''.join(choice(ascii_letters) for _ in range(12))
-            with open(f'{name}.csv', 'w', newline='', encoding='utf16') as csvfile:
-                writer = csv.writer(
-                    csvfile, delimiter=';', quotechar='"',
-                    quoting=csv.QUOTE_MINIMAL)
-                for i in self.al:
-                    c = f'=ГИПЕРССЫЛКА("{i[0]}";"{i[1]}")'
-                    writer.writerow([c, i[2]])
-            self.bot.send_document(self.chat_id, open(f'{name}.csv', 'rb'))
-            f = os.path.join(os.path.abspath(f'{name}.csv'))
-            os.remove(f)
+            if self.type_format == 'csv':
+                with open(f'{name}.csv', 'w', newline='', encoding='utf16') as csvfile:
+                    writer = csv.writer(
+                        csvfile, delimiter=self.delim, quotechar='"',
+                        quoting=csv.QUOTE_MINIMAL)
+                    for i in self.al:
+                        c = f'=ГИПЕРССЫЛКА("{i[0]}";"{i[1]}")'
+                        writer.writerow([c, i[2]])
+                self.bot.send_document(self.chat_id, open(f'{name}.csv', 'rb'))
+                f = os.path.join(os.path.abspath(f'{name}.csv'))
+                os.remove(f)
+            else:
+                with open(f'{name}.txt', 'w', newline='\n') as txtfile:
+                    for i in self.al:
+                        print(f"{i[0]}" + '\n' + f"{i[2]}" + "\n", file=txtfile)
+                self.bot.send_document(self.chat_id, open(f'{name}.txt', 'r'))
+                f = os.path.join(os.path.abspath(f'{name}.txt'))
+                os.remove(f)
+

@@ -1,4 +1,3 @@
-from enum import unique
 from peewee import CharField, Model, IntegerField, SqliteDatabase
 
 
