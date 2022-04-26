@@ -1,52 +1,13 @@
 import csv
-import sys
-import traceback
 import telebot
 import urllib.request
 import re
-import googlesearch
-from googlesearch import search
 import requests
 from bs4 import BeautifulSoup
-from fake_useragent import UserAgent
 from random import choice
 from string import ascii_letters
 import os
-
-
-class YandexSearch:
-    def __init__(self, query):
-        self.query = query
-        self.ua = UserAgent()
-
-    def search_text(self):
-        pass
-
-    def search_image(self, page):
-        res = []
-        url = fr'https://yandex.ru/images/search?source=collections&rpt=imageview&p={page}&url={self.query}'
-        soup = BeautifulSoup(requests.get(
-            url, headers={'User-Agent': self.ua.random}).text, 'lxml')
-        links = soup.find_all('div', class_='CbirSites-ItemTitle')
-        for link in links:
-            res.append(f"{link.find('a').get('href')}")
-        return res
-
-
-class GoogleSearch:
-    def __init__(self, query):
-        self.query = query
-
-    def search_text(self, start, stop=10):
-        res = []
-        user_agent = googlesearch.get_random_user_agent()
-        for j in search(self.query, start=start, stop=stop,
-                        user_agent=user_agent):
-            res.append(j)
-        return res
-
-    def search_image(self):
-        pass
+from register_search_sys import register_sys
 
 
 class Flow:
@@ -64,7 +25,7 @@ class Flow:
         self.al = []
         self.count = 0
         self.count2 = 0
-        dict_sys = {'Google': GoogleSearch, 'Yandex': YandexSearch}
+        dict_sys = register_sys()
         self.search_sys = dict_sys[search_sys](query)
 
     def start(self, num=100):
@@ -148,4 +109,4 @@ class Flow:
                 self.bot.send_document(self.chat_id, open(f'{name}.txt', 'r'))
                 f = os.path.join(os.path.abspath(f'{name}.txt'))
                 os.remove(f)
-
+  

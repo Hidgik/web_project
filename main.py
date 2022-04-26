@@ -1,13 +1,9 @@
-from ast import Num
-from tkinter.tix import Tree
-import traceback
-from bs4 import BeautifulSoup
-import requests
 import telebot
 from data.regulars import Expressions
-from data.settings import SettingResource, Settings, init_user
+from data.settings import SettingResource, init_user
 from threading import Thread
 from flow import Flow
+from register_search_sys import register_sys
 
 
 class Stage:
@@ -207,7 +203,7 @@ class Stage:
     
     def change_sys(self, message):
         if self.cancel_or_not(message):
-            if message.text.strip() in ['Google', 'Yandex']:
+            if message.text.strip() in register_sys().keys():
                 setting = SettingResource()
                 setting.change_object(
                     message.from_user.id,
@@ -326,7 +322,7 @@ def handle_text(message):
         '/list': [lambda v: stage.list_of_ev(v)],
         '/settings': [lambda v: stage.get_settings(v)],
         '/change_num_lines': [lambda v: ["Выберите стандартное значение количества строк", keyboard5], lambda v: stage.change_num_lines(v)],
-        '/change_sys': [lambda v: ["Выберите приоритетную поисковую систему (Google или Yandex)", keyboard4], lambda v: stage.change_sys(v)],
+        '/change_sys': [lambda v: [f"Выберите приоритетную поисковую систему ({', '.join(register_sys().keys())})", keyboard4], lambda v: stage.change_sys(v)],
         '/change_delim': [lambda v: ["Введите разделитель для csv", keyboard4], lambda v: stage.change_delim(v)],
         '/change_format': [lambda v: ["Выберите формат вывода (txt или csv)", keyboard4], lambda v: stage.change_format(v)],
         '/delete': stage.commonCS['askName'] + [lambda v: stage.ValidateName_for_delete(v),
