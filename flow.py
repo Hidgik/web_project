@@ -7,14 +7,14 @@ from bs4 import BeautifulSoup
 from random import choice
 from string import ascii_letters
 import os
-from register_search_sys import register_sys
+from register_search_sys import register_sys_for_text, register_sys_for_image
 
 
 class Flow:
-    def __init__(self, bot, query, chat_id, search_sys, regular, delim, type_format):
+    def __init__(self, bot, query, chat_id, search_sys, regular, delim,
+                 type_format):
         self.bot = bot
         self.delim = delim
-        self.query = query
         self.chat_id = chat_id
         self.type_format = type_format
         self.search_sys = search_sys
@@ -25,17 +25,25 @@ class Flow:
         self.al = []
         self.count = 0
         self.count2 = 0
-        dict_sys = register_sys()
-        self.search_sys = dict_sys[search_sys](query)
+        self.query = query
+        if type(query) == list:
+            dict_sys = register_sys_for_image()
+            self.search_sys = dict_sys[search_sys[1]](query[1])
+        else:
+            dict_sys = register_sys_for_text()
+            self.search_sys = dict_sys[search_sys[0]](query)
 
     def start(self, num=100):
         msg = self.bot.send_message(self.chat_id, f"Выполнено 0/{num}")
         while self.flag and self.count2 < num:
-            if '5260510912:AAHbZZ2dsYVFUapmsN2VLMY-KP62A8NSjuA' not in self.query:
-                self.links = self.search_sys.search_text(self.count)
+            if type(self.query) != list:
+                self.links = self.search_sys.search_text(self.count, self.page)
                 self.count += 10
+                self.page += 1
             else:
-                self.links = self.search_sys.search_image(self.page)
+                self.links = self.search_sys.search_image(
+                    self.count, self.page)
+                self.count += 10
                 self.page += 1
             for i in self.links:
                 res = self.find(i)
@@ -77,7 +85,9 @@ class Flow:
                 res.append(", ".join(list(set(items))))
                 self.al[-1] = self.al[-1] + [", ".join(list(set(items)))]
             if typ:
-                self.bot.send_message(self.chat_id, res[1], reply_markup=telebot.types.ReplyKeyboardRemove())
+                self.bot.send_message(
+                    self.chat_id, res[1],
+                    reply_markup=telebot.types.ReplyKeyboardRemove())
             return res
         except Exception:
             pass
@@ -109,4 +119,3 @@ class Flow:
                 self.bot.send_document(self.chat_id, open(f'{name}.txt', 'r'))
                 f = os.path.join(os.path.abspath(f'{name}.txt'))
                 os.remove(f)
-  

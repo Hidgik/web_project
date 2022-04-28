@@ -133,5 +133,5 @@ class RegularsResource:
             a.append(f'{regular.name}: {regular.expression}')
         return a
 
- 
+
 init_db()
