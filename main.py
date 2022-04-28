@@ -292,7 +292,11 @@ class Stage:
         info = setting.get_info(message.from_user.id)
         self.bot.send_message(
             message.chat.id,
-            f"Текущие настройки:\n\nПриоритетная поисковая система для текста:{info.search_sys}\nПриоритетная поисковая система для картинок: {info.search_sys_image}\nФормат файла:\{info.type_file}\nРазделитель в csv файле: '{info.delim_csv}'\nКоличество ссылок с результатами: {info.default}",
+            f"Текущие настройки:\n\nПриоритетная поисковая система для текста"
+            f": {info.search_sys}\nПриоритетная поисковая система для картинок:"
+            f" {info.search_sys_image}\nФормат файла:\{info.type_file}\n"
+            f"Разделитель в csv файле: '{info.delim_csv}'\n"
+            f"Количество ссылок с результатами: {info.default}",
             reply_markup=telebot.types.ReplyKeyboardRemove())
 
     def ask_num_res(self, message):
@@ -317,7 +321,11 @@ bot = telebot.TeleBot('5260510912:AAHbZZ2dsYVFUapmsN2VLMY-KP62A8NSjuA')
 def start(message, res=False):
     init_user(message.from_user.id)
     bot.send_message(
-        message.chat.id, 'Команды\n\n/begin\n/list\n/add\n/delete',
+        message.chat.id,
+        f'Команды:\n\n/begin\n/list\n/add\n/delete\n/test_regular'
+        f'\n\nДля настроек:\n\n/settings'
+        f'\n/change_num_lines\n/change_sys_for_text'
+        f'\n/change_sys_for_image\n/change_delim\n/change_format',
         reply_markup=telebot.types.ReplyKeyboardRemove())
 
 

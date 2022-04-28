@@ -14,7 +14,8 @@ class YandexSearch:
 
     def search_image(self, start, page):
         res = []
-        url = fr'https://yandex.ru/images/search?source=collections&rpt=imageview&p={page}&url={self.query}'
+        url = fr'https://yandex.ru/images/search'\
+        fr'?source=collections&rpt=imageview&p={page}&url={self.query}'
         soup = BeautifulSoup(requests.get(
             url, headers={'User-Agent': self.ua.random}).text, 'lxml')
         links = soup.find_all('div', class_='CbirSites-ItemTitle')
@@ -65,12 +66,14 @@ class RamblerSearch:
 
     def search_text(self, start, page):
         res = []
-        url = fr'https://nova.rambler.ru/search?&query={self.query}&page={page}'
+        url = fr'https://nova.rambler.ru/search'\
+        fr'?&query={self.query}&page={page}'
         soup = BeautifulSoup(requests.get(
             url, headers={'User-Agent': self.ua.random}).text, 'lxml')
         links = soup.find_all('h2', class_='Serp__title--3MDnI')
         for link in links:
             res.append(f"{link.find('a').get('href')}")
+        print(url)
         return res
 
     def search_image(self, start, page):
