@@ -108,7 +108,9 @@ class Flow:
                         quoting=csv.QUOTE_MINIMAL)
                     for i in self.al:
                         c = f'=ГИПЕРССЫЛКА("{i[0]}";"{i[1]}")'
-                        writer.writerow([c, i[2]])
+                        writer.writerow([c])
+                        writer.writerow([i[2]])
+                        writer.writerow([])
                 self.bot.send_document(self.chat_id, open(f'{name}.csv', 'rb'))
                 f = os.path.join(os.path.abspath(f'{name}.csv'))
                 os.remove(f)
