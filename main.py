@@ -294,7 +294,7 @@ class Stage:
             message.chat.id,
             f"Текущие настройки:\n\nПриоритетная поисковая система для текста"
             f": {info.search_sys}\nПриоритетная поисковая система для картинок:"
-            f" {info.search_sys_image}\nФормат файла:\{info.type_file}\n"
+            f" {info.search_sys_image}\nФормат файла: {info.type_file}\n"
             f"Разделитель в csv файле: '{info.delim_csv}'\n"
             f"Количество ссылок с результатами: {info.default}",
             reply_markup=telebot.types.ReplyKeyboardRemove())
